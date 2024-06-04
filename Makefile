@@ -21,4 +21,13 @@ startdb:
 stopdb:
 	@docker rm ecom-db -f
 
-.PHONY: build run test startdb stopdb
+migration:
+	@migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
+
+migrate-up:
+	@go run cmd/migrate/main.go up
+
+migrate-down:
+	@go run cmd/migrate/main.go down
+
+.PHONY: build run test startdb stopdb migration migrate-up migrate-down
