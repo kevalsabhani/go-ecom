@@ -9,6 +9,7 @@ import (
 	"github.com/kevalsabhani/go-ecom/service/auth"
 	"github.com/kevalsabhani/go-ecom/types"
 	"github.com/kevalsabhani/go-ecom/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
@@ -24,7 +25,34 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
 }
 
-func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	// get JSON payload from request body
+	var payload types.LoginUserPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// validate the request payload
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
+		return
+	}
+
+	// check if the user exists or not
+	user, err := h.store.GetUserByEmail(payload.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid username or password"))
+		return
+	}
+
+	if !comparePasswords(user.Password, payload.Password) {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid username or password"))
+		return
+	}
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": ""})
+}
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// get JSON payload from request body
@@ -65,4 +93,12 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteJSON(w, http.StatusCreated, map[string]string{"msg": "user created"})
+}
+
+func comparePasswords(hashed string, password string) bool {
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(hashed),
+		[]byte(password),
+	)
+	return err == nil
 }
