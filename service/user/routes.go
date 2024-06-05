@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/kevalsabhani/go-ecom/config"
 	"github.com/kevalsabhani/go-ecom/service/auth"
 	"github.com/kevalsabhani/go-ecom/types"
 	"github.com/kevalsabhani/go-ecom/utils"
@@ -51,7 +52,14 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid username or password"))
 		return
 	}
-	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": ""})
+
+	token, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
