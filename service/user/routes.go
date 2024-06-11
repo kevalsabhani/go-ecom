@@ -10,7 +10,6 @@ import (
 	"github.com/kevalsabhani/go-ecom/service/auth"
 	"github.com/kevalsabhani/go-ecom/types"
 	"github.com/kevalsabhani/go-ecom/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
@@ -48,7 +47,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !comparePasswords(user.Password, payload.Password) {
+	if !auth.ComparePasswords(user.Password, payload.Password) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid username or password"))
 		return
 	}
@@ -101,12 +100,4 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteJSON(w, http.StatusCreated, map[string]string{"msg": "user created"})
-}
-
-func comparePasswords(hashed string, password string) bool {
-	err := bcrypt.CompareHashAndPassword(
-		[]byte(hashed),
-		[]byte(password),
-	)
-	return err == nil
 }
